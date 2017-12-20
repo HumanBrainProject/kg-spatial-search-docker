@@ -1,6 +1,6 @@
 # Docker container for HBP-Lucene-Solr #
 
-(c) 2017 [DIAS](https://dias.epfl.ch/BrainDB) laboratory
+Copyright (c) 2017-2018 2017 [DIAS](https://dias.epfl.ch/BrainDB) laboratory
 
 ---
 
@@ -15,17 +15,19 @@ It has been developed on Ubuntu and not tested on other platforms.
 **1. Clone this project**  
 ```sh
 $ git clone git@bitbucket.org:sakurad/hbp-lucene-solr-docker.git
+$ cd hbp-lucene-solr-docker
 ```
 
-**2. Clone the HBP-Lucene/Solr sources**  
+**2. Clone the HBP-Lucene/Solr sources and build it**  
 ```sh
-$ git clone git@bitbucket.org:sakurad/hbp-lucene-solr.git src
+$ git clone git@bitbucket.org:sakurad/hbp-lucene-solr.git src/hbp-lucene-solr
+$ cd src/hbp-lucene-solr && ant compile && cd solr && ant package
 ```  
 
 **3. Build the docker image**  
 ```sh
 $ docker build -t hpb-lucene-solr \
-    --build-arg JOBS=8 \
+#   --build-arg JOBS=8 \
     --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
     --build-arg VCS_REF=`git -C ./src/ rev-parse --short HEAD` \
     .
@@ -49,13 +51,6 @@ To start Spatial Search API service, you will need three folders to store the fo
 
 You can then start the container with the following command:
 ```sh
-$ docker run --rm \
-    -e POSTGRES_USER=dbuser \
-    -e POSTGRES_PASSWORD=secret \
-    -e POSTGRES_DB=db \
-    -p 5554:5432 \
-    -v $PWD/../data:/data:rw \
-    -v $PWD/../datasets:/datasets:ro \
-    --name PostgresRAW \
-    hbpmip/postgresraw
+$ docker run --rm --name my-hbp-solr -d -p 8983:8983 -t hbp-lucene-solr
 ```
+
