@@ -46,5 +46,5 @@ fi
 
 # populate with default solr home contents
 echo "copying solr home contents to $SOLR_HOME"
-cp -R /opt/solr/server/solr/*  "$SOLR_HOME"
+cp -R /opt/hbp-lucene-solr/server/solr/*  "$SOLR_HOME"
 
