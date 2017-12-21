@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# Run the init-hbp-solr-home script and source any '.sh' scripts that are found
+# in `/docker-entrypoint-initdb.d`. Files there will be executed in alphabetical
+# order.
+#
+# This script (run-initdb) is sourced by some of the solr-* commands, so that
+# I can run eg:
+#
+#   mkdir initdb; echo "echo hi" > initdb/hi.sh
+#   docker run -v $PWD/initdb:/docker-entrypoint-initdb.d hbp-lucene-solr
+#
+# and have your script execute before hbp-lucene-solr instance starts.
+#
+# Note: scripts can modify the environment, which will affect subsequent scripts
+# and ultimately Solr. That allows you to set environment variables from your 
+# scripts (though you usually just use "docker run -e"). If this is undesirable
+# in your use-case, have your scripts execute a sub-shell.
+
+set -e
+
+# init script for handling a custom SOLR_HOME
+/opt/hbp-lucene-solr-docker/scripts/init-hbp-solr-home
+
+# execute files in /docker-entrypoint-initdb.d before starting hbp-lucene-solr
+SCRIPTS_TO_RUN=/tmp/init-scripts-to-run
+find /docker-entrypoint-initdb.d/ -mindepth 1 -type f | sort -n > "$SCRIPTS_TO_RUN"
+readarray -t scripts_to_run < "$SCRIPTS_TO_RUN"
+rm "$SCRIPTS_TO_RUN"
+for f in "${scripts_to_run[@]}"; do
+    case "$f" in
+        *.sh)     echo "$0: running $f"; . "$f" ;;
+        *)        echo "$0: ignoring $f" ;;
+    esac
+    echo
+done
