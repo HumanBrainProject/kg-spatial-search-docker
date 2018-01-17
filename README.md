@@ -10,6 +10,25 @@ This project creates a lightweight Docker image of a customized *Lucene/Solr* im
 
 ## Quick-start ##
 
+**0. Prerequisites**
+
+First, Java SDK is required for Lucene/Solr compilation:
+```sh
+$ sudo apt-get update
+$ sudo apt-get install default-jdk # On Ubuntu, this will install OpenJDK 8 (the latest and recommended version)
+```
+Then you need to set `JAVA_HOME` with the path of your preferred installation and set it in `/etc/environment`:
+```sh
+$ sudo update-alternatives --config java # will list all available Java installations
+$ sudo emacs /etc/environment # add 2 lines: "JAVA_HOME=/usr/lib/jvm/default-java/jre" and "export JAVA_HOME"
+$ source /etc/environment
+```
+
+Also Ant:
+```sh
+# sudo apt-get install ant
+```
+
 **1. Clone this project**  
 ```sh
 $ git clone git@bitbucket.org:sakurad/hbp-lucene-solr-docker.git
@@ -19,7 +38,7 @@ $ cd hbp-lucene-solr-docker
 **2. Clone the HBP-Lucene/Solr sources and build it**  
 ```sh
 $ git clone git@bitbucket.org:sakurad/hbp-lucene-solr.git src/hbp-lucene-solr
-$ cd src/hbp-lucene-solr && ant compile && cd solr && ant package && cd ../../../
+$ cd src/hbp-lucene-solr && ant ivy-bootstrap && ant compile && cd solr && ant package && cd ../../../
 ```  
 
 **3. Build the docker image**  
