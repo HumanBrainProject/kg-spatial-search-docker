@@ -26,27 +26,29 @@ $ source /etc/environment
 
 Also Ant:
 ```sh
-# sudo apt-get install ant
+sudo apt-get install ant
 ```
 
 **1. Clone this project**  
 ```sh
-$ git clone git@bitbucket.org:sakurad/hbp-lucene-solr-docker.git
-$ cd hbp-lucene-solr-docker
+git clone git@bitbucket.org:sakurad/hbp-lucene-solr-docker.git
+cd hbp-lucene-solr-docker
 ```
 
 **2. Clone the HBP-Lucene/Solr sources and build it**  
 ```sh
-$ git clone git@bitbucket.org:sakurad/hbp-lucene-solr.git src/hbp-lucene-solr
-$ cd src/hbp-lucene-solr && ant ivy-bootstrap && ant compile && cd solr && ant package && cd ../../../
+git clone git@bitbucket.org:sakurad/hbp-lucene-solr.git src/hbp-lucene-solr
+# or using https:
+git clone https://sakurad@bitbucket.org/sakurad/hbp-lucene-solr.git src/hbp-lucene-solr
+cd src/hbp-lucene-solr && ant ivy-bootstrap && ant compile && cd solr && ant package && cd ../../../
 ```  
 
 **3. Build the docker image**  
 ```sh
-$ docker build -t hpb-lucene-solr \
-#   --build-arg JOBS=8 \
+docker build -t hbp-lucene-solr \
     --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
     --build-arg VCS_REF=`git -C ./src/ rev-parse --short HEAD` \
+#   --build-arg JOBS=8 \
     .
 ```
 
@@ -58,7 +60,7 @@ $ docker build -t hpb-lucene-solr \
 
 **4. Use the built image**  
 ```sh
-$ docker run --rm --name my-hbp-solr -d -p 8983:8983 hbp-lucene-solr
+docker run --rm --name my-hbp-solr -d -p 8983:8983 hbp-lucene-solr
 ```
 
 ## Using a custom `SOLR_HOME` (outside container)  ##
@@ -73,33 +75,35 @@ This does need a pre-configured directory at that location (`/mysolrhome`).
 
 As such, hbp-lucene-solr-docker supports a `INIT_SOLR_HOME` setting, which 
 copies the contents from the default directory in the image to the `SOLR_HOME` 
-(the newly specified must be empty).  
-```sh
-$ mkdir -p docker-volumes/hbp-solr1
-$ sudo chown 8983:8983 docker-volumes/hbp-solr1
-$ docker run -it -v $PWD/docker-volumes/hbp-solr1:/hbp-solr1 \
-             -e SOLR_HOME=/hbp-solr1 -e INIT_SOLR_HOME=yes \
-             hbp-lucene-solr
-```
-
-## Putting it all together ##
----
+(the newly specified must be empty).
 
 The following is used to run the Spatial Search API in production mode:  
 ```sh
-$ mkdir -p docker-volumes/hbp-solr1
-$ sudo chown 8983:8983 docker-volumes/hbp-solr1
-$ docker run \
+mkdir -p docker-volumes/custom-solr-home-1
+sudo chown 8983:8983 docker-volumes/custom-solr-home-1
+docker run \
   --name my-hbp-solr \
   -d \
   -p 8983:8983 \
   -it \
-  -v $PWD/docker-volumes/hbp-solr1:/hbp-solr1 \
-  -e SOLR_HOME=/hbp-solr1 \
+  -v $PWD/docker-volumes/custom-solr-home-1:/opt/custom-solr-home-1 \
+  -e SOLR_HOME=/opt/custom-solr-home-1 \
   -e INIT_SOLR_HOME=yes \
-  -e SOLR_HEAP=12g \
+  -e SOLR_HEAP=7g \
   hbp-lucene-solr
 ```
 
-Note increased memory size (12GB).
+Note increased memory size (7GB).
+
+**Options used:**
+
+```sh
+--name string          Assign a name to the container
+-d, --detach           Run container in background and print container ID
+-p, --publish list     Publish a container's port(s) to the host
+-i, --interactive      Keep STDIN open even if not attached
+-t, --tty              Allocate a pseudo-TTY
+-v, --volume list      Bind mount a volume
+-e, --env list         Set environment variables (within running conmtainer)
+```
 

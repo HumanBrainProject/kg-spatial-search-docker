@@ -89,11 +89,12 @@ EXPOSE 8983
 #
 # The next CMD alone worked fine for running a single Solr instance within a 
 # docker:
-#CMD ["solr", "start", "-p", "8983", "-f", "-s", "server/solr" ]
+# CMD ["solr", "start", "-p", "8983", "-f", "-s", "server/solr" ]
 #
 # The docker image can be run then using:
-#   `docker run --rm --name my-hbp-solr -d -p 8983:8983 -t hbp-lucene-solr`
-#
+# ```sh
+# docker run --rm --name my-hbp-solr -p 8983:8983 -it hbp-lucene-solr
+# ```
 #
 # However, to have more flexibility and following existing conventions, it was
 # replaced by the bellow combination of ENTRYPOINT and CMD instructions.
