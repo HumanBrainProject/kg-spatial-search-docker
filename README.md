@@ -1,6 +1,6 @@
 # Docker container for HBP-Lucene/Solr #
 
-Copyright (c) 2017-2018 2017 [DIAS](https://dias.epfl.ch/BrainDB) laboratory
+Copyright (c) 2016-2018 [DIAS](https://dias.epfl.ch/BrainDB) laboratory
 
 ---
 
@@ -35,11 +35,20 @@ git clone git@bitbucket.org:sakurad/hbp-lucene-solr-docker.git
 cd hbp-lucene-solr-docker
 ```
 
+**_Note:_** the subsequent steps are automated in `DEPLOY.sh`, except the creation of directories for custom SOLR_HOME:
+
+```sh
+# i.e., run:
+mkdir -p docker-volumes/custom-solr-home-1 && sudo chown 8983:8983 docker-volumes/custom-solr-home-1`
+# before:
+./DEPLOY.sh
+```
+
 **2. Clone the HBP-Lucene/Solr sources and build it**  
 ```sh
-git clone git@bitbucket.org:sakurad/hbp-lucene-solr.git src/hbp-lucene-solr
+git clone ssh://git@c4science.ch/source/hbp-lucene-solr.git src/hbp-lucene-solr
 # or using https:
-git clone https://sakurad@bitbucket.org/sakurad/hbp-lucene-solr.git src/hbp-lucene-solr
+git clone https://c4science.ch/source/hbp-lucene-solr.git src/hbp-lucene-solr
 cd src/hbp-lucene-solr && ant ivy-bootstrap && ant compile && cd solr && ant package && cd ../../../
 ```  
 
@@ -63,7 +72,7 @@ docker build -t hbp-lucene-solr \
 docker run --rm --name my-hbp-solr -d -p 8983:8983 hbp-lucene-solr
 ```
 
-## Using a custom `SOLR_HOME` (outside container)  ##
+## Few notes on using a custom `SOLR_HOME` (outside container)  ##
 ---
 
 To use a custom *Solr home* directory directory on the host system (outside the container), we can employ a `SOLR_HOME` environment variable by setting it to the desired location (which is now inside the container in its default location at `/opt/hbp-lucene-solr/server/solr`). We support this in hbp-lucene-solr-docker, in combination with volumes:  
