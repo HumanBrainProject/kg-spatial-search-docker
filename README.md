@@ -4,7 +4,7 @@ Copyright (c) 2016-2018 [DIAS](https://dias.epfl.ch/BrainDB) laboratory
 
 ---
 
-This project creates a lightweight Docker image of a customized *Lucene/Solr* implementation ([HBP-Lucene/Solr](https://bitbucket.org/sakurad/hbp-lucene-solr)) for running HBP Spatial Search Service (API).
+This project creates a lightweight Docker image of a customized *Lucene/Solr* implementation ([HBP-Lucene/Solr](https://c4science.ch/source/hbp-lucene-solr/)) for running HBP Spatial Search Service (API).
 
 ---
 
@@ -31,7 +31,7 @@ sudo apt-get install ant
 
 **1. Clone this project**  
 ```sh
-git clone git@bitbucket.org:sakurad/hbp-lucene-solr-docker.git
+git clone git@c4science.ch/source/hbp-lucene-solr-docker.git
 cd hbp-lucene-solr-docker
 ```
 
@@ -39,7 +39,7 @@ cd hbp-lucene-solr-docker
 
 ```sh
 # i.e., run:
-mkdir -p docker-volumes/custom-solr-home-1 && sudo chown 8983:8983 docker-volumes/custom-solr-home-1`
+mkdir -p docker-volumes/custom-solr-home-1 && sudo chown 8983:8983 docker-volumes/custom-solr-home-1
 # before:
 ./DEPLOY.sh
 ```

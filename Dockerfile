@@ -59,12 +59,12 @@ ENV SOLR_HOME="/opt/hbp-lucene-solr/server/solr"
 ARG BUILD_DATE
 ARG VCS_REF
 LABEL org.label-schema.build-date=$BUILD_DATE \
-    org.label-schema.name="lucene-solr" \
+    org.label-schema.name="hbp-lucene-solr-docker" \
     org.label-schema.description="Docker image for running hbp-lucene-solr" \
-    org.label-schema.url="https://bitbucket.org/sakurad/hbp-lucene-solr-docker" \
+    org.label-schema.url="https://c4science.ch/source/hbp-lucene-solr-docker" \
     org.label-schema.vcs-type="git" \
     org.label-schema.vcs-ref=$VCS_REF \
-    org.label-schema.vcs-url="https://bitbucket.org/sakurad/hbp-lucene-solr-docker" \
+    org.label-schema.vcs-url="https://c4science.ch/source/hbp-lucene-solr-docker" \
     org.label-schema.vendor="DIAS EPFL" \
     org.label-schema.docker.dockerfile="Dockerfile" \
     org.label-schema.schema-version="0.8"
