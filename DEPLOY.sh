@@ -9,30 +9,30 @@
 : ${SRC:="https://github.com/HumanBrainProject/kg-spatial-search.git"};
 
 # Options for image building
-: ${TAG:="hbp-lucene-solr"};
+: ${TAG:="kg-spatial-search"};
 : ${NOW:=`date -u +"%Y-%m-%dT%H:%M:%SZ"`};
 : ${REF:=`git -C ./src/ rev-parse --short HEAD`};
 : ${NOCACHE:="--no-cache=true"}; # eps., if sources were updated
-build_opts="-t ${TAG} ${NOCACHE} --build-arg BUILD_DATE=${NOW} --build-arg VCS_REF=${REF}";
 
 # Options for clean-run
 : ${MEM:="7g"}; # memory for JVM
-: ${NAM:="my-hbp-solr"};
-: ${INIT:="INIT_SOLR_HOME=yes"};
+: ${NAM:="kg-spatial-search"};
+: ${INIT_SOLR_HOME:="no"};
 : ${ENV:="-e SOLR_HOME=/opt/custom-solr-home-1 -e SOLR_HEAP=${MEM}"};
-: ${VOL:="$PWD/docker-volumes/custom-solr-home-1:/opt/custom-solr-home-1"};
+: ${SOLR_VOLUME:="${PWD}/docker-volumes/custom-solr-home-1"}
 : ${POR:="8983:8983"}; # port
 # --name ${NAM}
-run_opts="-d -p ${POR} -v ${VOL} ${ENV} -e ${INIT} ${TAG}"; # '-it'
 
 # Options for (re)-run using previous SOLR_HOME
 : ${NOINIT:="INIT_SOLR_HOME=no"};
-rerun_opts="-d -p ${POR} -v ${VOL} ${ENV} -e ${NOINIT} ${TAG}"; # '-it'
 
-echo "--> HBP Lucene-Solr Docker image: what do you want to do? <--"
+build_opts="-t ${TAG} ${NOCACHE} --build-arg BUILD_DATE=${NOW} --build-arg VCS_REF=${REF}";
+run_opts="-d -p ${POR} -v ${SOLR_VOLUME}:/opt/custom-solr-home-1 ${ENV} -e INIT_SOLR_HOME=\${INIT_SOLR_HOME} ${TAG}"; # '-it'
+
+echo "--> HBP KnowledgeGraph Spatial Search Docker image: what do you want to do? <--"
 select cmd in "Clone" "Build" "Run" "Resume" "Stop" "Cancel"; do
 case $cmd in
-  Clone ) echo "Clone: get HBP-Lucene-Solr source code and compile it" ;
+  Clone ) echo "Clone: get the source code and compile it" ;
           echo "git clone ${SRC} src/${TAG}" ;
           git clone ${SRC} "src/${TAG}" ;
           echo "cd src/${TAG} && ant ivy-bootstrap && ant compile" ;
@@ -48,20 +48,20 @@ case $cmd in
           break ;;
 
   Run ) echo "(Clean) run: initialize SOLR_HOME directory and run" ;
-              echo "docker run ${run_opts}" ;
-              docker run ${run_opts} ;
+        INIT_SOLR_HOME="yes" ;
+              eval echo "docker run ${run_opts}" ;
+              #eval docker run ${run_opts} ;
               break ;;
 
   Resume ) echo "Resume: run (new) container using previous SOLR_HOME " ;
-           solr_local_homedir="docker-volumes/custom-solr-home-1" ;
-           if [ ! -f "${solr_local_homedir}/solr.xml" ]; then
+           if [ ! -f "${SOLR_VOLUME}/solr.xml" ]; then
              # This is a minimum requirement:
-             echo "ERROR: 'solr.xml' not found in ${solr_local_homedir}!" ;
+             echo "ERROR: 'solr.xml' not found in ${SOLR_VOLUME}!" ;
              echo "Exiting.." ;
-             exit ;
+           #  exit ;
            fi
-           echo "docker run ${rerun_opts}" ;
-           docker run ${rerun_opts} ;
+           eval echo "docker run ${run_opts}" ;
+           #eval docker run ${rerun_opts} ;
            break ;;
 
   Stop ) echo "Stop: halt all running containers" ;
