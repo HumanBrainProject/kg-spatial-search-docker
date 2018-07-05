@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 
 # Options for fetching HBP-Lucene-Solr source files
-SRC="https://c4science.ch/source/hbp-lucene-solr.git" ;
+SRC="https://github.com/HumanBrainProject/kg-spatial-search.git" ;
 
 # Options for image building
 TAG="hbp-lucene-solr" ;
