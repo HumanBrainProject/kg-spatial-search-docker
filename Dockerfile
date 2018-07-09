@@ -21,7 +21,7 @@
 ################################################################################
 
 FROM openjdk:jre-alpine
-MAINTAINER Darius Sidlauskas <darius.sidlauskas@epfl.ch>
+MAINTAINER Lionel Sambuc <lionel.sambuc@epfl.ch>
 
 RUN apk update && \
     apk add tar bash
