@@ -7,7 +7,7 @@ if [[ "$VERBOSE" = "yes" ]]; then
     set -x
     fi
 
-. /opt/hbp-lucene-solr-docker/scripts/run-initdb
+run-initdb
 
 echo "Starting HBP Spatial Search API (using Solr-$SOLR_VERSION)"
 

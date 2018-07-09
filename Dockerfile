@@ -20,58 +20,68 @@
 #
 ################################################################################
 
-FROM openjdk:jre-alpine
+FROM openjdk:jdk-alpine as builder
 MAINTAINER Lionel Sambuc <lionel.sambuc@epfl.ch>
 
-RUN apk update && \
-    apk add tar bash
-
 ENV LANG=C.UTF-8
+ENV PREFIX=/opt/kg-spatial-search
+ENV SOLR_VERSION="8.0.0" \
+    PATH="$PREFIX/bin:$PREFIX/scripts:$PATH"
+
+RUN apk update && \
+    apk add git apache-ant perl
+
+COPY src/kg-spatial-search /src
+
+RUN cd /src && \
+    ant ivy-bootstrap
+
+RUN cd /src/solr && \
+    ant compile && \
+    ant package
+
+################################################################################
+FROM openjdk:jre-alpine
+
+# Note: All environment variables are resetted by the FROM:
+ENV LANG=C.UTF-8
+ENV PREFIX=/opt/kg-spatial-search
 ENV SOLR_USER="solr" \
     SOLR_UID="8983" \
     SOLR_GROUP="solr" \
     SOLR_GID="8983" \
     SOLR_VERSION="8.0.0" \
-    PATH="/opt/hbp-lucene-solr/bin:/opt/hbp-lucene-solr-docker/scripts:$PATH"
+    PATH="$PREFIX/bin:$PREFIX/scripts:$PATH" \
+    SOLR_HOME="$PREFIX/server/solr"
 
 RUN addgroup -S -g $SOLR_GID $SOLR_GROUP && \
     adduser -S -u $SOLR_UID -G $SOLR_GROUP $SOLR_USER
 
-COPY src/hbp-lucene-solr/solr/package/solr-8.0.0-SNAPSHOT.tgz /opt/hbp-lucene-solr.tgz
-RUN mkdir -p /opt/hbp-lucene-solr && \
-  tar -C /opt/hbp-lucene-solr --extract --file /opt/hbp-lucene-solr.tgz --strip-components=1 && \
-  rm /opt/hbp-lucene-solr.tgz* && \
-  rm -Rf /opt/hbp-lucene-solr/docs/
-RUN chown -R $SOLR_USER:$SOLR_GROUP /opt/hbp-lucene-solr
+RUN apk update && \
+    apk add bash
 
-COPY scripts /opt/hbp-lucene-solr-docker/scripts
-RUN chown -R $SOLR_USER:$SOLR_GROUP /opt/hbp-lucene-solr-docker
+COPY --from=builder /src/solr/build/solr-8.0.0-SNAPSHOT/ $PREFIX
+COPY scripts $PREFIX/scripts
 
-#RUN cd /opt/hbp-lucene-solr && ant ivy-bootstrap && ant compile
-#RUN cd solr && ant server && ant dist
-
-################################################################################
-
-# FROM openjdk:jre-alpine
-# Note: All environment variables are resetted by the FROM:
-ENV SOLR_HOME="/opt/hbp-lucene-solr/server/solr"
+RUN chown -R $SOLR_USER:$SOLR_GROUP $PREFIX
+RUN chmod ugo+x $PREFIX/bin/solr $PREFIX/bin/*.sh $PREFIX/bin/init.d/*
 
 ARG BUILD_DATE
 ARG VCS_REF
 LABEL org.label-schema.build-date=$BUILD_DATE \
-    org.label-schema.name="hbp-lucene-solr-docker" \
-    org.label-schema.description="Docker image for running hbp-lucene-solr" \
-    org.label-schema.url="https://c4science.ch/source/hbp-lucene-solr-docker" \
+    org.label-schema.name="kg-spatial-search" \
+    org.label-schema.description="Docker image for running the KnowledgeGraph Spatial Search service" \
+    org.label-schema.url="https://github.com/HumanBrainProject/kg-spatial-search-docker" \
     org.label-schema.vcs-type="git" \
     org.label-schema.vcs-ref=$VCS_REF \
-    org.label-schema.vcs-url="https://c4science.ch/source/hbp-lucene-solr-docker" \
+    org.label-schema.vcs-url="https://github.com/HumanBrainProject/kg-spatial-search-docker" \
     org.label-schema.vendor="DIAS EPFL" \
     org.label-schema.docker.dockerfile="Dockerfile" \
     org.label-schema.schema-version="0.8"
 
 ################################################################################
 
-WORKDIR /opt/hbp-lucene-solr
+WORKDIR $PREFIX
 USER $SOLR_USER
 EXPOSE 8983
 
@@ -93,7 +103,7 @@ EXPOSE 8983
 #
 # The docker image can be run then using:
 # ```sh
-# docker run --rm --name my-hbp-solr -p 8983:8983 -it hbp-lucene-solr
+# docker run --rm --name my-hbp-solr -p 8983:8983 -it kg-spatial-search
 # ```
 #
 # However, to have more flexibility and following existing conventions, it was

@@ -46,7 +46,6 @@ fi
 
 # populate with default solr home contents
 echo "copying solr home contents to (custom) $SOLR_HOME"
-ls /
-cp -r /opt/hbp-lucene-solr/server/solr/*  "$SOLR_HOME"
+cp -r $PREFIX/server/solr/*  "$SOLR_HOME"
 echo "DONE: initialized a custom SOLR_HOME directory (at $SOLR_HOME)."
 

@@ -20,7 +20,7 @@
 set -e
 
 # init script for handling a custom SOLR_HOME
-/opt/hbp-lucene-solr-docker/scripts/init-hbp-solr-home
+init-hbp-solr-home
 
 # execute files in /docker-entrypoint-initdb.d before starting hbp-lucene-solr
 SCRIPTS_TO_RUN=/tmp/init-scripts-to-run
