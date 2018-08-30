@@ -31,7 +31,7 @@ ENV SOLR_VERSION="8.0.0" \
 RUN apk update && \
     apk add git apache-ant perl
 
-COPY src/kg-spatial-search /src
+COPY src/ /src
 
 RUN cd /src && \
     ant ivy-bootstrap

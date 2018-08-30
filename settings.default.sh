@@ -15,3 +15,4 @@
 #############################################################################
 # Build settings
 : ${KG_SPATIAL_SEARCH_SRC:="git@github.com:HumanBrainProject/kg-spatial-search"}
+: ${KG_SPATIAL_SEARCH_NO_CACHE:="true"} # Assume the sources have changed.
