@@ -1,2 +1,3 @@
 src/
 docker-volumes/
+settings.local*

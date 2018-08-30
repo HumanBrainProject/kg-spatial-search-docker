@@ -1,0 +1,17 @@
+: ${SHOW_SETTINGS:=false}
+
+#############################################################################
+# Global settings
+: ${COMPOSE_PROJECT_NAME:="kg"}
+
+#############################################################################
+# Global settings
+: ${KG_SPATIAL_SEARCH_IMAGE:="solr"}
+: ${KG_SPATIAL_SEARCH_VERSION:=":7.4-alpine"}
+: ${KG_SPATIAL_SEARCH_PORT:="8983"}
+: ${KG_SPATIAL_SEARCH_DATA:="${PWD}/solr"}
+: ${KG_SPATIAL_SEARCH_HEAP_SIZE:="7g"}
+
+#############################################################################
+# Build settings
+: ${KG_SPATIAL_SEARCH_SRC:="git@github.com:HumanBrainProject/kg-spatial-search"}
