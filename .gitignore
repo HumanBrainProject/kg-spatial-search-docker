@@ -1,3 +1,5 @@
+datasets
+solr
 build/src/
 docker-volumes/
 settings.local*
