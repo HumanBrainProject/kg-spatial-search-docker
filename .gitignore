@@ -3,3 +3,6 @@ solr
 build/src/
 docker-volumes/
 settings.local*
+*.pyc
+.idea
+venv
