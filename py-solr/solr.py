@@ -7,11 +7,14 @@ class Solr:
 
     @staticmethod
     def _json_type(json_obj):
-        """Returns the JSON object type.
+        """Returns the JSON object type as a string.
 
         That is, returns supported type of the top level JSON object
         (document).
 
+        :param json json_obj:   Object to inspect
+        :return:                One of 'array', 'features', 'object'  or
+                                'unknown'
         """
 
         if type(json_obj) == list:
@@ -23,7 +26,62 @@ class Solr:
             elif 'properties' in json_obj:
                 return 'object'
 
-        return "unknown"
+        return 'unknown'
+
+    @staticmethod
+    def stats_to_mbb(json_stats):
+        """ Converts JSON response to BBox format
+        """
+
+        box = [
+            [json_stats['stats_fields'][
+                 ('geometry.coordinates_%d___pdouble' % d)]['min'] for d in
+             [0, 1, 2]],
+            [json_stats['stats_fields'][
+                 ('geometry.coordinates_%d___pdouble' % d)]['max'] for d in
+             [0, 1, 2]]
+        ]
+
+        return box
+
+    @staticmethod
+    def _append_if_not_found(params, key, val, verbose=False):
+        if val is None:
+            return
+
+        if not ([True for c in params if c == key]):
+            params.append((key, val))
+        else:
+            if verbose:
+                print('Warning, not appending ("%s", "%s") as "%s" is already'
+                      ' present' % (key, val, key))
+
+    @staticmethod
+    def label_to_q(label):
+        return 'properties.id:%s' % label
+
+    @staticmethod
+    def labels_to_q(labels):
+        return ' OR '.join(['properties.id:%s' % l for l in labels])
+
+    @staticmethod
+    def point_to_str(coordinate):
+        assert (len(coordinate) > 0)
+        assert (len(coordinate) < 5)
+        if coordinate is None:
+            print('Coordinate: %s' % coordinate)
+        return ', '.join(['%f' % c for c in coordinate])
+
+    @staticmethod
+    def mbb_to_str(mbb):
+        # FIXME: Should we take into account the referenceSpace?
+        assert (len(mbb) == 2)
+        assert (len(mbb[0]) == len(mbb[1]))
+
+        mbb_str = '["%s" TO "%s"]' % (Solr.point_to_str(mbb[0]),
+                                      Solr.point_to_str(mbb[1]))
+
+        return mbb_str
 
     def __init__(self, url='', cloud_mode=False):
         assert (url != '')
@@ -33,7 +91,7 @@ class Solr:
     #########################################################################
     # GET APIs
     #########################################################################
-    def _get(self, endpoint, params, verbose=False):
+    def _get(self, endpoint, params, print_timing=False, verbose=False):
         """Execute a REST API call."""
 
         r = requests.get('%s/%s' % (self.service_url, endpoint), params)
@@ -44,12 +102,20 @@ class Solr:
             print(json.dumps(params, indent=2))
             print('result: %s' % r.reason)
 
+        if print_timing and r.status_code == requests.codes.ok:
+            rsp_json = r.json()
+            queries = rsp_json['response']['numFound']
+            timing = rsp_json['responseHeader']['QTime']
+            print('QTime: %d [ms] # rows %d' %
+                  (timing, queries))
+
         if r.status_code != requests.codes.ok:
             r.raise_for_status()
 
         return r
 
-    def _get_core(self, core, endpoint, params, verbose=False):
+    def _get_core(self, core, endpoint, params,
+                  print_timing=False, verbose=False):
         """API Calls to a specific core."""
 
         # if self.cloud_mode:
@@ -61,7 +127,8 @@ class Solr:
             print('ERROR: no collection with "%s" name exist!' % core)
             return
 
-        return self._get('%s/%s' % (core, endpoint), params, verbose)
+        return self._get('%s/%s' % (core, endpoint), params,
+                         print_timing, verbose)
 
     def cores(self, verbose=False):
         """Returns list of currently running (existing) cores."""
@@ -184,7 +251,7 @@ class Solr:
 
         self._get('admin/cores', params, verbose)
 
-    def core_unload(self, core, verbose=True):
+    def core_unload(self, core, verbose=False):
         """Removes a given core from Solr.
 
         Active requests will continue to be processed, but no new requests will
@@ -336,7 +403,7 @@ class Solr:
         used to enable sorting.
 
         Up to 4 dimensions are supported. It performs better in many ways
-        (faster indexing, smaller index size, and faster range queries)
+        (faster indexing, smaller index bucket_size, and faster range queries)
         compared to the previous TrieDoubleField-based alternatives (that work
         only with geodetic spatial data).
         """
@@ -561,3 +628,234 @@ class Solr:
 
         if r.status_code == requests.codes.ok:
             self.commit(core, verbose)
+
+    #########################################################################
+    # QUERY APIs
+    #########################################################################
+
+    @staticmethod
+    def _point_to_fq(point):
+        assert (len(point) > 1)
+        assert (len(point) < 5)
+
+        # FIXME: Take into account the reference space to compute
+        # conversions if/when needed
+
+        # FIXME: Evaluate what is better, the whole field, or to use the
+        # scalar values of each geometry?
+
+        # space_str + ' AND geometry.geometry=("%s")' %
+        #           self.point_to_str(point)
+        return ' AND '.join(['geometry.coordinates_%d___pdouble:%f' %
+                             (d, point[d])
+                             for d in [0, 1, 2, 3][:len(point)]])
+
+    @staticmethod
+    def mbb_to_fq(mbb):
+        # FIXME: Take into account the reference space to compute
+        # conversions if/when needed
+
+        # FIXME: Evaluate what is better, a range query over the whole
+        # field, or to use range queries over the scalar values of each
+        # geometry?
+        return 'geometry.coordinates:%s' % Solr.mbb_to_str(mbb)
+
+    def _query(self, core, q='*:*', fq=None, fl=None, params=None,
+               rows=10, start=0, wt='json', indent='on',
+               print_timing=False, verbose=False):
+        """Wrapper for combining both spatial and text-related search
+        parameters.
+
+        The result will be the intersection of all the filters and the query
+        provided.
+
+        An equivalent example of a direct REST API call:
+           http://localhost:8983/solr/metadata/select?fq=geometry.coordinates:[-130,30%20TO%20-94,44]&q=abstract:*&wt=json
+
+           :param str core:     targeted document collection
+           :param str q:        query to execute. Defaults to '*:*'
+           :param list[str] fq: filter query strings. Defaults to None.
+           :param str fl:       comma separated list of document fields to be
+                                returned the query (by default returns all).
+           :param list[(str, str)] params:
+                                GET parameters, allows to specify arbitrary
+                                parameters not explicitly handled by this
+                                method.
+           :param int rows:     number of results to return. Defaults to 10.
+           :param int start:    starting at (for paging). Defaults to 0.
+           :param str wt:       response format. Defaults to 'json'
+           :param str indent:   whether to indent or not the response.
+                                Defaults to 'on'
+           :param bool verbose: verbose mode (for debugging)
+           :return:             the HTTP request result object
+          """
+
+        p = []
+        if params is not None:
+            p = params[:]
+        self._append_if_not_found(p, 'q', q, verbose)
+        self._append_if_not_found(p, 'rows', str(rows), verbose)
+        self._append_if_not_found(p, 'start', str(start), verbose)
+        self._append_if_not_found(p, 'wt', wt, verbose)
+        self._append_if_not_found(p, 'indent', indent, verbose)
+        self._append_if_not_found(p, 'fl', fl, verbose)
+
+        # From:
+        #  https://lucene.apache.org/solr/guide/6_6/common-query-parameters.html#CommonQueryParameters-Thefq_FilterQuery_Parameter
+        #
+        # The fq parameter defines a query that can be used to restrict the
+        # superset of documents that can be returned, without influencing
+        # score. It can be very useful for speeding up complex queries,
+        # since the queries specified with fq are cached independently of the
+        # main query. When a later query uses the same filter, there's a
+        # cache hit, and filter results are returned quickly from the cache.
+        if fq is not None:
+            [p.append(('fq', f)) for f in fq]
+
+        return self._get_core(core, 'select', p, print_timing, verbose)
+
+    def spatial_mbb(self, core, query='*:*', params=None,
+                    print_timing=False, verbose=False):
+        """Computes spatial bounds (BBox) of a given query result.
+
+        default query='*:*' matches all documents and thus returns bounds of
+        the universe
+
+        Args:
+            core (str): the targeted collection.
+            query (str): query string to execute.
+            params (List): List of Solr query parameters.
+            print_timing (bool): print query timing stats
+            verbose (bool): verbose mode (for debugging)
+
+        Returns:
+            BBox: the bounding box of the query results.
+        """
+        p = []
+        if params is not None:
+            p = params[:]
+
+        p.append(('stats', 'true'))
+        [p.append(('stats.field', 'geometry.coordinates_%d___pdouble' % d))
+         for d in [0, 1, 2]]
+        p.append(('rows', 0))
+
+        if verbose:
+            print('spatial_bounds:')
+        r = self._query(core, query, params=p, print_timing=print_timing,
+                        verbose=verbose)
+
+        return self.stats_to_mbb(r.json()['stats'])
+
+    def query(self, core,
+              oid=None, labels=None,
+              geometry=None, mbb=None, reference_space=None,
+              fl=None, q='*:*', params=None,
+              rows=10, start=0,
+              print_timing=False, verbose=False):
+        """Wrapper for queries inside the spatial index.
+
+            If a combination of oid, geometry, referenceSpace and/or mbb
+            are provided, the query results will be an AND of all the provided
+            parameters.
+
+            *Note*: The labels are used to compute a minimum bounding box
+            which will contain all the points of all the labels. This might
+            contain space not in any of the labels which will successfully
+
+            :param q:
+            :param labels:
+            :param core:
+            :param oid:
+            :param geometry: ("24.27, 9.84, 17.65")
+            :param reference_space:
+            :param mbb:         geometry.coordinates:["2, 9, 1" TO "250, 100,
+                                180"]
+            :param fl:
+            :param params:
+            :param rows:
+            :param start:       row offset at which the output should start.
+
+            :param print_timing: print query timing stats
+            :param verbose:
+            :return:
+        """
+
+        fq = []  # Query filters, list of predicates
+        p = []  # make sure we do not modify caller's object
+
+        # We are using a list of tuples instead of a dictionary as we can
+        # have multiple time the same key.
+        if params is not None:
+            p = params[:]
+
+        if oid is not None:
+            # We want the geometry of the document oid (this can be a set
+            # of points)
+            fq.append('properties.id:%s' % oid)
+
+        if reference_space is not None:
+            # We want all the points stored in that reference coordinate system
+            fq.append('geometry.referenceSpace_str:%s' % reference_space)
+
+        if geometry is not None:
+            # We want everything found at that specific point in space
+
+            # FIXME: Take into account the reference space to compute
+            # conversions if/when needed
+            fq.append(self._point_to_fq(geometry))
+
+        if mbb is not None:
+            # We want everything within that minimum bounding box
+
+            # FIXME: Take into account the reference space to compute
+            # conversions if/when needed
+            fq.append(self.mbb_to_fq(mbb))
+
+        if labels is not None:
+            # We want all the points within the space defined by the union of
+            # the labels, but not in the space between the spaces.
+
+            # To achieve this, we approximate the volume of each label to a
+            # Minimum Bounding Box, and then we add a single filter which
+            # consists of the union of these boxes, connected through OR
+            # statements, instead of computing the Minimum Bounding Box of
+            # all the labels at once. The latter would contain a lot of dead
+            # space not belonging to any volume of the labels for which we
+            # would return false positive.
+
+            # FIXME: We currently only use the approximated volume of each
+            #        label instead of the exact volumes.
+
+            # FIXME: Can we combine into a single query the current query and
+            #        the computation of the MBB of the labels? This currently
+            #        generates a query per label, and then the query
+            #        effectively asked for by the user.
+
+            # Compute the mbb of each label
+            labels_mbbs = [self.spatial_mbb(core, self.label_to_q(l),
+                                            verbose=verbose) for l in labels]
+
+            fq.append(' OR '.join([self.mbb_to_fq(m)
+                                   for m in labels_mbbs]))
+
+        if verbose:
+            print('Solr query:')
+        r = self._query(core, q, fq, fl, params=p, rows=rows,
+                        start=start,
+                        print_timing=print_timing, verbose=verbose)
+
+        return r.json()
+
+    def query_cardinality(self, core,
+                          oid=None, labels=None,
+                          geometry=None, mbb=None, reference_space=None,
+                          fl=None, q='*:*', params=None,
+                          print_timing=False, verbose=False):
+
+        # Run the query, but force the number of returned results to zero as
+        # we are only interested in the number of hits
+        return self.query(core, oid, labels, geometry, mbb, reference_space, fl,
+                          q, params, rows=0, start=0,
+                          print_timing=print_timing,
+                          verbose=verbose)["response"]["numFound"]
