@@ -6,29 +6,6 @@ class Solr:
     """Wrapper around a Solr server."""
 
     @staticmethod
-    def _json_type(json_obj):
-        """Returns the JSON object type as a string.
-
-        That is, returns supported type of the top level JSON object
-        (document).
-
-        :param json json_obj:   Object to inspect
-        :return:                One of 'array', 'features', 'object'  or
-                                'unknown'
-        """
-
-        if type(json_obj) == list:
-            return 'array'
-
-        if type(json_obj) == dict:
-            if 'features' in json_obj:
-                return 'features'
-            elif 'properties' in json_obj:
-                return 'object'
-
-        return 'unknown'
-
-    @staticmethod
     def stats_to_mbb(json_stats):
         """ Converts JSON response to BBox format
         """
@@ -547,56 +524,9 @@ class Solr:
 
         self._post_core(core, 'update', post_header, binary_data, verbose)
 
-    def index_spatial_json_doc(self, doc, core, commit=True,
-                               print_timing=False, verbose=False):
-        """Index/load GeoJSON-like docs representing spatial metadata.
-
-        The given doc must be a valid GeoJSON-like format supported by
-        SpatialSearchApp.
-        """
-
-        # docs must be JSON loaded as follows:
-        # docs = json.load( open('spatial-metadata/records_0-100.json') )
-
-        # This is how we *flatten* all fields out and map them using the
-        # same (most inner) json tag:
-        doc_type = self._json_type(doc)
-        params = '?split=/'
-        num_docs = 0
-
-        if doc_type == 'array' or doc_type == 'object':
-            num_docs = len(doc)
-        elif doc_type == 'features':
-            num_docs = len(doc['features'])
-        else:
-            print('Warning: unsupported JSON document. Skipping... ')
-            return
-
-        # FIXME: Should we try to actively hide the automatic, typed (
-        # _str, ___pdouble, etc) fields?
-
-        post_header = {
-            'content-type': 'application/json',
-            'charset': 'utf-8'
-        }
-
-        if verbose:
-            print('Solr index_spatial_json_doc:')
-
-        r = self._post_core(core, 'update/json/docs' + params,
-                            post_header, doc, verbose)
-
-        if commit:
-            self.commit(core)
-
-        if print_timing:
-            rsp_json = r.json()
-            print('QTime: %d[ms] # Queries %d: %d q/s ' %
-                  (rsp_json['responseHeader']['QTime'], num_docs,
-                   num_docs * 1000 / rsp_json['responseHeader']['QTime']))
-
     def index_spatial_json(self, url, core, commit=True, print_timing=False,
                            verbose=False):
+
         """Index/load GeoJSON-like docs representing spatial metadata.
 
         The given doc must be a valid GeoJSON-like format supported by
@@ -604,9 +534,42 @@ class Solr:
         """
 
         assert (url != '')
-        docs = json.load(open(url))
+        doc = open(url, 'rb')
 
-        self.index_spatial_json_doc(docs, core, commit, print_timing, verbose)
+        # This is how we *flatten* all fields out and map them using the
+        # same (most inner) json tag:
+        params = '?split=/'
+
+        # FIXME: Should we try to actively hide the automatic, typed (
+        # _str, ___pdouble, etc) fields?
+
+        post_headers = {
+            'content-type': 'application/json',
+            'charset': 'utf-8'
+        }
+
+        if verbose:
+            print('Solr index_spatial_json_doc:')
+
+        # We bypass the regular post/post_core helpers as we want to send the
+        # files without loading and parsing them in memory, which requires to
+        # use the data= parameter instead of the regular json= parameter of
+        # requests.
+        endpoint = 'update/json/docs' + params
+        existing_cores = self.cores()
+        if core not in existing_cores:
+            print('ERROR: no collection with "%s" name exist!' % core)
+            return
+
+        r = requests.post('%s/%s/%s' % (self.service_url, core, endpoint), data=doc,
+                          headers=post_headers)
+
+        if commit:
+            self.commit(core)
+
+        if print_timing:
+            rsp_json = r.json()
+            print('QTime: %d[ms]' % (rsp_json['responseHeader']['QTime']))
 
     def delete(self, core, query='*:*', verbose=False):
         """Delete elements from a core."""

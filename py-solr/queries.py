@@ -102,6 +102,7 @@ def query_mbb(mbb):
     #########################################################################
     # Find out all the points included in the minimum bounding box
     num_points = solr.query_cardinality(core, mbb=mbb)
+    print("#Points: %d" % (num_points))
     points = solr.query(core, mbb=mbb, rows=num_points)["response"]["docs"]
 
     #########################################################################
