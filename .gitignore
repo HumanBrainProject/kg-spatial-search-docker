@@ -1,4 +1,4 @@
-datasets
+datasets*
 solr
 build/src/
 docker-volumes/
