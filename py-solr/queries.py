@@ -14,7 +14,7 @@ def draw_universe(fig):
 
 def draw_query_box(fig, box):
     # Draw the given box
-    fig.plot_mbb(box, linecolor='grey', linesize=1, linestyle='dashed')
+    fig.plot_mbb(box, linecolor='grey', linestyle='dashed')
 
 
 def average_point(group):
@@ -112,7 +112,7 @@ def query_mbb(mbb):
     draw_universe(f)
 
     # Draw the query box
-    f.plot_mbb(mbb, linecolor='red', linesize=1)
+    f.plot_mbb(mbb, linecolor='red')
 
     # Generates multiple colors, one per point
     f.create_colors(len(points))
@@ -168,7 +168,7 @@ def query_space(reference_space, bucket_size, page_size):
         f.add_points(pp, color=color)
 
         # Add a box around the current slice of the dataset
-        f.plot_mbb(pb, linecolor=color, linesize=1, linestyle="dotted")
+        f.plot_mbb(pb, linecolor=color, linestyle="dotted")
 
         # Compute the next box_width box
         pb[0][0] -= box_width
