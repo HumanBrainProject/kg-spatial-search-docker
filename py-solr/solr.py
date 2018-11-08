@@ -47,7 +47,9 @@ class Solr:
         assert (len(coordinate) < 5)
         if coordinate is None:
             print('Coordinate: %s' % coordinate)
-        return ', '.join(['%f' % c for c in coordinate])
+        # FIXME: make sure to have the right precision, otherwise points will
+        #        not match, even when they should.
+        return ', '.join(['%.16f' % c for c in coordinate])
 
     @staticmethod
     def mbb_to_str(mbb):
@@ -609,7 +611,10 @@ class Solr:
 
         # space_str + ' AND geometry.geometry=("%s")' %
         #           self.point_to_str(point)
-        return ' AND '.join(['geometry.coordinates_%d___pdouble:%f' %
+
+        # FIXME: make sure to have the right precision, otherwise points will
+        #        not match, even when they should.
+        return ' AND '.join(['geometry.coordinates_%d___pdouble:%.16f' %
                              (d, point[d])
                              for d in [0, 1, 2, 3][:len(point)]])
 
