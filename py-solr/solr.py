@@ -827,3 +827,17 @@ class Solr:
                           q, params, rows=0, start=0,
                           print_timing=print_timing,
                           verbose=verbose)["response"]["numFound"]
+
+    def list_field(self, core, field):
+        params = []
+        params.append(("facet", 'on'))
+        params.append(("facet.field", field))
+
+        ids = self.query(core, fl='field', params=params, rows=0)[
+            "facet_counts"]["facet_fields"][field]
+
+        it = iter(ids)
+        p = zip(it, it)
+
+        # Return distinct values only
+        return list(set([x for x, _ in p]))
