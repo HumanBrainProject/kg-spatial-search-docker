@@ -166,7 +166,10 @@ def run_queries(repetitions):
                             [[0., 0., 0.], [0.1, 0.1, 0.1]])))
     # 5. Query all points contained in a specific volume, defined by label,
     #    a.k.a OID.
-    qs.append(("Q5", repeat(repetitions, query_labels, oids[2:5])))
+    if len(oids) < 5:
+        qs.append(("Q5", repeat(repetitions, query_labels, oids[:])))
+    else:
+        qs.append(("Q5", repeat(repetitions, query_labels, oids[2:5])))
 
     #########################################################################
     # Output the selected statistics
