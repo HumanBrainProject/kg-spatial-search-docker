@@ -126,10 +126,10 @@ class Solr:
         return keys
 
     def core_status(self, core=None, verbose=False):
-        """The STATUS action returns the status of all running Solr cores, or 
+        """The STATUS action returns the status of all running Solr cores, or
         status for only the named core.
 
-        If core_name is not given (default), returns status of all cores. 
+        If core_name is not given (default), returns status of all cores.
         Otherwise, returns status of a named core:
 
             http://localhost:8983/solr/admin/cores?action=STATUS&core=core0
@@ -198,7 +198,7 @@ class Solr:
         self._get('admin/cores', params, verbose)
 
     def core_reload(self, core, verbose=False):
-        """The RELOAD action loads a new core from the configuration of an 
+        """The RELOAD action loads a new core from the configuration of an
         existing, registered Solr core.
 
         While the new core is initializing, the existing one will continue to
@@ -206,7 +206,7 @@ class Solr:
         the old core is unloaded.
 
         This is useful when you've made changes to a Solr core's configuration
-        on disk, such as adding new field definitions. Calling the RELOAD 
+        on disk, such as adding new field definitions. Calling the RELOAD
         action lets you apply the new configuration without having to restart
         the Web container.
 
@@ -561,8 +561,8 @@ class Solr:
             print('ERROR: no collection with "%s" name exist!' % core)
             return
 
-        r = requests.post('%s/%s/%s' % (self.service_url, core, endpoint), data=doc,
-                          headers=post_headers)
+        r = requests.post('%s/%s/%s' % (self.service_url, core, endpoint),
+                          data=doc, headers=post_headers)
 
         if commit:
             self.commit(core)
