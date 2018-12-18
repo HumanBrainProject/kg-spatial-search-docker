@@ -13,7 +13,10 @@
 : ${KG_SPATIAL_SEARCH_DATA_DEFAULTS:="${PWD}/defaults/basic"}
 : ${KG_SPATIAL_SEARCH_HEAP_SIZE:="7g"}
 : ${KG_SPATIAL_SEARCH_SERVICE_NAME:="${COMPOSE_PROJECT_NAME}_spatial-search_1"}
-: ${KG_SPATIAL_SEARCH_URL:="http://localhost:${KG_SPATIAL_SEARCH_PORT}/solr"}
+: ${KG_SPATIAL_SEARCH_BASE:="solr"}
+: ${KG_SPATIAL_SEARCH_URL:="http://localhost:${KG_SPATIAL_SEARCH_PORT}/${KG_SPATIAL_SEARCH_BASE}"}
+: ${KG_CONF_FILE_JETTY:="${PWD}/config/jetty.xml"}
+: ${KG_CONF_FILE_CONTEXT:="${PWD}/config/solr-jetty-context.xml"}
 
 #############################################################################
 # Build settings

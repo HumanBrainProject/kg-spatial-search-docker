@@ -33,5 +33,7 @@ services:
         window: 120s
     volumes:
       - ${KG_SPATIAL_SEARCH_DATA}:/opt/solr/server/solr/mycores:rw
+      - ${KG_CONF_FILE_JETTY}:/opt/solr/server/etc/jetty.xml:ro
+      - ${KG_CONF_FILE_CONTEXT}:/opt/solr/server/contexts/solr-jetty-context.xml:ro
     ports:
       - "${KG_SPATIAL_SEARCH_PORT}:8983"

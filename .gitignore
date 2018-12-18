@@ -6,3 +6,4 @@ settings.local*
 *.pyc
 .idea
 venv
+config/

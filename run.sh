@@ -28,8 +28,7 @@ then
 fi
 
 # Generate Configuration from templates
-if false; then
-for f in ${CONF_FILE_1}
+for f in ${KG_CONF_FILE_JETTY} ${KG_CONF_FILE_CONTEXT}
 do
 	for v in $(grep '^:' settings.default.sh|cut -c 5- |cut -d: -f1)
 	do
@@ -38,6 +37,5 @@ do
 		sed -e "${script}" $f.in > $f
 	done
 done
-fi
 
 docker-compose $@
