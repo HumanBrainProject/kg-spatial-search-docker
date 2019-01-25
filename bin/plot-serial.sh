@@ -1,5 +1,4 @@
 #!/bin/sh
-.
 : ${SPATIAL_SEARCH_HOME:="${PWD}"}
 . ${SPATIAL_SEARCH_HOME}/settings.sh
 
