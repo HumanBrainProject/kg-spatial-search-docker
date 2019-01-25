@@ -1,11 +1,14 @@
 #!/bin/sh
 
+: ${SPATIAL_SEARCH_HOME:="${PWD}"}
+. ${SPATIAL_SEARCH_HOME}/settings.sh
+
 iterate() {
 	for f in '' $*
 	do
 		for d in 1 2 5
 		do
-			(cd ..; time ./create-db.sh $d${f}k ./py-solr/tests/datasets/$d${f}k.json)
+			(time ${PROJECT_BIN}/create-db.sh $d${f}k datasets/$d${f}k.json)
 			echo Loaded 1000 points/OIDS, $d$f OIDs, total $d${f}000 points
 			echo ------------------------------------------------------------------------
 		done

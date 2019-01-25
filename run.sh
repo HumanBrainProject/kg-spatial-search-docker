@@ -18,7 +18,8 @@
 # USE OF THIS SOFTWARE.
 
 # Import settings
-. ./settings.sh
+: ${SPATIAL_SEARCH_HOME:="${PWD}"}
+. ${SPATIAL_SEARCH_HOME}/settings.sh
 
 # Permanent storage
 if [ ! -d ${KG_SPATIAL_SEARCH_DATA} ];

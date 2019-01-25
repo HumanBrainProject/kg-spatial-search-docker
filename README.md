@@ -20,26 +20,39 @@ While we do try to keep things portable, keep in mind this project has been deve
 
 2. **Sources layout**
 
-   ```
+   ```shell
    .
+   ├── bin
+   │   ├── create-db.sh
+   │   ├── generate.sh
+   │   ├── load.sh
+   │   ├── plot-serial.sh
+   │   ├── queries-serial.sh
+   │   └── reset.sh
    ├── build
    │   ├── Dockerfile
    │   ├── scripts
    │   └── src               # Only present if a build was attempted, and the sources
    |                         # downloaded
    ├── build.sh
-   ├── create-db.sh
-   ├── create-release-db.sh
-   ├── create-staging-db.sh
-   ├── defaults
-   │   ├── basic
-   │   └── full
+   ├── config                # Configuration templates for Solr
+   ├── defaults              # Default settings for Solr datasets
    ├── docker-compose.yml
    ├── LICENSE
-   ├── py-solr                # Python wrappers and tools around the Solr REST API
-   │   ├── __init__.py
-   │   ├── register.py        # Convenience command line tool to manage datasets
-   │   └── solr.py            # Python wrapper
+   ├── py-solr               # Python wrappers and tools around the Solr REST API
+   │   ├── example-queries.py
+   │   ├── generate_rnd_uniform.py
+   │   ├── queries-serial-bench.py	# Run a set of queries and save timings
+   │   ├── queries-serial-graph.py # Plot saved timings
+   │   ├── register.py       # Convenience command line tool to manage datasets
+   │   └── util
+   │       ├── benchmarks.py
+   │       ├── data.py
+   │       ├── __init__.py
+   │       ├── plot_3d.py
+   │       ├── plot.py
+   │       ├── solr.py        # Python wrapper for the Solr REST API
+   │       └── stat.py
    ├── README.md
    ├── run.sh
    ├── settings.default.sh
@@ -60,9 +73,9 @@ While we do try to keep things portable, keep in mind this project has been deve
    You can create the default `release` and `staging` datasets using one of: 
 
    ```sh
-   $ ./create-release-db.sh
+   $ ./bin/create-db.sh release
    # and/or
-   $ ./create-staging-db.sh
+   $ ./bin/create-db.sh staging
    ```
 
    The datasets will be created with the types required, but empty.
@@ -70,9 +83,9 @@ While we do try to keep things portable, keep in mind this project has been deve
    If you have data which you would like to load at the same time you can do: 
 
    ```sh
-   $ ./create-db.sh <dataset name> <data_file.json>
+   $ ./bin/create-db.sh <dataset name> <data_file.json>
    # or, if the dataset already exists, you can load data with:
-   $ ./create-db.sh <dataset name> <data_file.json> -l
+   $ ./bin/create-db.sh <dataset name> <data_file.json> -l
    ```
 
 ## Step by Step guide

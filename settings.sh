@@ -2,21 +2,21 @@
 #  1. Shell Environment, or on the command line
 
 #  2. Node-specific settings `settings.local.<Alias>.sh`
-if test ! -z "$1" && test -f ./settings.local.$1.sh;
+if test ! -z "$1" && test -f ${SPATIAL_SEARCH_HOME}/settings.local.$1.sh;
 then
-	. ./settings.local.$1.sh;
+	. ${SPATIAL_SEARCH_HOME}/settings.local.$1.sh;
 fi
 
 #  3. Federation-specific `settings.local.sh`
-if test -f ./settings.local.sh;
+if test -f ${SPATIAL_SEARCH_HOME}/settings.local.sh;
 then
-	. ./settings.local.sh;
+	. ${SPATIAL_SEARCH_HOME}/settings.local.sh;
 fi
 
 #  4. Default settings `settings.default.sh`
-if test -f ./settings.default.sh;
+if test -f ${SPATIAL_SEARCH_HOME}/settings.default.sh;
 then
-	. ./settings.default.sh;
+	. ${SPATIAL_SEARCH_HOME}/settings.default.sh;
 fi
 
 if ${SHOW_SETTINGS};
@@ -24,7 +24,7 @@ then
 	echo "Current settings:"
 fi
 
-for v in $(grep '^:' settings.default.sh|cut -c 5- |cut -d: -f1)
+for v in $(grep '^:' ${SPATIAL_SEARCH_HOME}/settings.default.sh|cut -c 5- |cut -d: -f1)
 do
 	eval "export $v=\"\$$v\""
 	if ${SHOW_SETTINGS};

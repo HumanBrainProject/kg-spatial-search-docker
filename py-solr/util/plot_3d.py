@@ -1,5 +1,6 @@
 import matplotlib
-matplotlib.use('GTKAgg')
+#matplotlib.use('GTKAgg')    # Needs to be called before ANY reference to
+                            # matplotlib objects are made.
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm

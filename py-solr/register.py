@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-from solr import Solr
 import sys
 import getopt
+from util.solr import Solr
 
 
 def usage(progname, retval=0):

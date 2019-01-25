@@ -1,8 +1,24 @@
-from solr import Solr
-from plot_3d import Fig
+#!/usr/bin/python
 
+import getopt
+import sys
 import copy
 
+from util.plot_3d import Fig
+from util.solr import Solr
+
+
+def usage(progname, retval=0):
+    print("%s -c <core> -u <url> [(-s|-S)]" % progname)
+    print("\t-c <core>          \tCore to use for the queries")
+    print("\t-u <url>           \turl to the Solr server")
+    print("\t-S                 \tShow universe bounds")
+    print("\t-s                 \tHide universe bounds")
+    sys.exit(retval)
+
+
+#############################################################################
+# Query utils
 def draw_universe(fig):
     if show_universe:
         # Add a box around all the points in the dataset
@@ -20,7 +36,7 @@ def draw_query_box(fig, box):
 def average_point(group):
     # FIXME: Most likely not good python code, might even be uber slow
     # FIXME: We arbitrarily take the first point properties for the group of
-    # points. This is most likely not correct in most situations.
+    #        points. This is most likely not correct in most situations.
 
     c = len(group)      # Number of points
     n = len(group[0])   # Number of dimensions
@@ -40,6 +56,8 @@ def average_point(group):
     return a
 
 
+#############################################################################
+# Query Examples
 def query_oid(oid):
     #########################################################################
     # Find out all the points linked to document oid
@@ -91,7 +109,7 @@ def query_geometry(geometry):
     f.create_colors(num_points)
 
     # Plot each point individually, be careful w.r.t the number of points,
-    # as this can be very slow if there are a lots of points
+    # as this can be very slow if there are a lot of points
     for p in points:
         f.add_points([p], label=p['properties.id_str'][0], color=f.next_color())
 
@@ -102,7 +120,7 @@ def query_mbb(mbb):
     #########################################################################
     # Find out all the points included in the minimum bounding box
     num_points = solr.query_cardinality(core, mbb=mbb)
-    print("#Points: %d" % (num_points))
+    print("#Points: %d" % num_points)
     points = solr.query(core, mbb=mbb, rows=num_points)["response"]["docs"]
 
     #########################################################################
@@ -214,33 +232,81 @@ def query_labels(labels):
 
 
 #############################################################################
-# Spatial Search URL at CSCS:
-#solr = Solr('https://nexus-dev.humanbrainproject.org/solr/')
-# Personal Workstation
-solr = Solr('http://M64006A327BAE.dyn.epfl.ch:8983/solr')
-core = 'release'  # What I used when loading the data (./create-release-db.sh)
-
-# comma separated names of spatial fields used in the index:
-spatial_fields = 'geometry.coordinates_0___pdouble,geometry.coordinates_1___pdouble,geometry.coordinates_2___pdouble'
+# Manage parameters & global symbols
+core = ''
+solr = None
+url = ''
 
 # Set to true to draw the bounding box of all the points available in Solr
 show_universe = False
 
-#query_oid('2900d3a9-e7cb-4a14-9248-98717f654fc7')
+# comma separated names of spatial fields used in the index:
+spatial_fields = \
+    'geometry.coordinates_0___pdouble,' \
+    'geometry.coordinates_1___pdouble,' \
+    'geometry.coordinates_2___pdouble '
 
-#query_geometry([24.27, 9.84, 17.65])
 
-#query_mbb([[380, 100, 50], [400, 300, 200]])
+def main(argv):
+    global core, url, solr, show_universe
+    progname = argv[0]
 
-#query_space('MNI', 1, 20)
-#query_space('WHS_SD_rat_v1.01', 100, 20000)
+    # url = 'https://nexus-dev.humanbrainproject.org/solr/' # CSCS
+    # url = 'http://M64006A327BAE.dyn.epfl.ch:8983/solr'
 
-#query_labels(['75422678_s0152_object'])
-query_labels(['75422652_s0152_object', '75422676_s0064_object'])
-#query_labels(['75422678_s0152_object', '75422652_s0064_object',
-# '75422676_s0144_object'])
+    try:
+        opts, args = getopt.getopt(argv[1:], 'c:u:sS')
+    except getopt.GetoptError:
+        usage(progname, 1)
 
-# Be very very patient to visualise those...
-#query_labels(['metadata/sEEG-spatial-metadata-sample'])
-#query_labels(['Uvula (I)', 'Uvula (II)', 'Uvula (III)', 'Uvula (IV)',
-# 'Uvula (V)', 'Uvula (VI)', 'Uvula (VII)', 'Uvula (VIII)'])
+    for opt, arg in opts:
+        if opt == '-c':
+            core = arg
+        elif opt == '-u':
+            url = arg
+        elif opt == '-S':
+            show_universe = True
+        elif opt == '-s':
+            show_universe = False
+        elif opt == '-h':
+            usage(progname)
+        else:
+            usage(progname, 1)
+
+    if len(opts) == 0:
+        usage(progname, 1)
+
+    assert (core != '')
+    assert (url != '')
+
+    solr = Solr(url)
+
+    ####
+    # Uncomment below to execute a specific query
+    ####
+
+    query_mbb([[0, 0, 0], [0.01, 0.01, 0.01]])
+    # query_mbb([[0, 0, 0], [0.5, 0.5, 0.5]])
+
+    # query_oid('2900d3a9-e7cb-4a14-9248-98717f654fc7')
+
+    # query_geometry([24.27, 9.84, 17.65])
+
+    #query_mbb([[380, 100, 50], [400, 300, 200]])
+
+    # query_space('MNI', 1, 20)
+    # query_space('WHS_SD_rat_v1.01', 100, 20000)
+
+    # query_labels(['75422678_s0152_object'])
+    # query_labels(['75422652_s0152_object', '75422676_s0064_object'])
+    # query_labels(['75422678_s0152_object', '75422652_s0064_object',
+    # '75422676_s0144_object'])
+
+    # Be very very patient to visualise those...
+    # query_labels(['metadata/sEEG-spatial-metadata-sample'])
+    # query_labels(['Uvula (I)', 'Uvula (II)', 'Uvula (III)', 'Uvula (IV)',
+    # 'Uvula (V)', 'Uvula (VI)', 'Uvula (VII)', 'Uvula (VIII)'])
+
+
+if __name__ == "__main__":
+    main(sys.argv)

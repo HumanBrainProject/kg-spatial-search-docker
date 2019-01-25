@@ -1,72 +1,17 @@
 #!/usr/bin/python
 
-from functools import reduce
 import getopt
-import operator
-from math import sqrt
 import sys
-import time
 
-
-from solr import Solr
+from util.solr import Solr
+import util.benchmarks as bench
 
 
 def usage(progname, retval=0):
     print("%s -c <core> -n <num>" % progname)
     print("\t-c <core>          \tCore to use for the queries")
-    print(
-        "\t-n <num>           \tNumber of times to run each query of the query "
-        "set.")
     print("\t-u <url>           \turl to the Solr server")
     sys.exit(retval)
-
-
-def flatten(lists):
-    return reduce(operator.concat, lists)
-
-
-#############################################################################
-# Timing statistics utils
-def mean(values):
-    # Cast everything to float before summing / dividing to improve accuracy
-    return sum([float(x) for x in values]) / float(len(values))
-
-
-def percentile(values, percent):
-    s = values[:]  # Copy, to make sure we do not change the inputs
-    s.sort()
-    i = len(values) * (float(percent) / 100.0)
-    return s[int(i)]
-
-
-def stddev(values):
-    mn = mean(values)
-    v = sum([(float(x) - mn)**2 for x in values]) / (len(values) - 1.0)
-    return sqrt(v)
-
-
-def timed(f):
-    start = time.time()
-    ret = f()
-    elapsed = time.time() - start
-    return ret, elapsed
-
-
-def repeat(count, query, *args):
-    qr = []
-    query(*args)
-
-    for i in range(0, count):
-        qr.append(timed(lambda: query(*args)))
-
-    return qr
-
-
-def stats(timings):
-    m = mean(timings)
-    p = percentile(timings, 50)
-    s = stddev(timings)
-    return m, s, p
 
 
 #############################################################################
@@ -77,7 +22,7 @@ def list_oids():
     return solr.list_field(core, 'properties.id')
 
 
-# Figure out the OIDs available:
+# Figure out the reference spaces available:
 def list_spaces():
     return solr.list_field(core, 'geometry.referenceSpace')
 
@@ -126,7 +71,7 @@ def query_labels(labels):
                        q="properties.id:%s" % l,
                        rows=num_points)["response"]["docs"]
 
-    return flatten(points)
+    return bench.flatten(points)
 
 
 #############################################################################
@@ -150,66 +95,67 @@ def run_queries(repetitions):
 
     qs = []
 
+    print("Stats per queries (%d samples/query, %s core):" %
+          (repetitions, core))
+
     # 1. Query all points with a specific OID
-    qs.append(("Q1", repeat(repetitions, query_oid, oids[0])))
+    qs.append(("Q1", bench.repeat(repetitions, query_oid, oids[0])))
 
     # 2. Query all points at a specific position in space
-    qs.append(("Q2", repeat(repetitions, query_geometry,
-                            [a_point["geometry.coordinates_%d___pdouble" % x]
-                                for x in range(0, 3)])))
+    position = [a_point["geometry.coordinates_%d___pdouble" % x]
+                for x in range(0, 3)]
+    qs.append(("Q2", bench.repeat(repetitions, query_geometry, position)))
 
     # 3. Query all the points in a specific reference space
-    qs.append(("Q3", repeat(repetitions, query_space, spaceids[0])))
+    qs.append(("Q3", bench.repeat(repetitions, query_space, spaceids[0])))
 
     # 4. Query all points contained in a specific volume, defined by volume.
-    qs.append(("Q4", repeat(repetitions, query_mbb,
-                            [[0., 0., 0.], [0.1, 0.1, 0.1]])))
+    qs.append(("Q4", bench.repeat(repetitions, query_mbb,
+                                  [[0., 0., 0.], [0.1, 0.1, 0.1]])))
     # 5. Query all points contained in a specific volume, defined by label,
     #    a.k.a OID.
     if len(oids) < 5:
-        qs.append(("Q5", repeat(repetitions, query_labels, oids[:])))
+        qs.append(("Q5", bench.repeat(repetitions, query_labels, oids[:])))
     else:
-        qs.append(("Q5", repeat(repetitions, query_labels, oids[2:5])))
+        qs.append(("Q5", bench.repeat(repetitions, query_labels, oids[2:5])))
 
     #########################################################################
     # Output the selected statistics
-    print("Stats per queries (%d samples/query, %s core):" %
-          (repetitions, core))
-    print("Query,mean,stddev,median,counts")
+    print("Query,counts,timing")
     for q in qs:
-        print("%s,%s,%s" %
-              (q[0],
-               ",".join(["%f" % v for v in stats([t for r, t in q[1]])]),
-               [len(r) for r, t in q[1]]
-               ))
+        print("%s,%d,%s" %
+              (q[0], repetitions,
+               ",".join(["%.16f" % v for v in [t for r, t in q[1]]])))
 
 
-def test_queries():
+def test_query(x=0):
     # TESTS TO CHECK QUERY RESULTS
     oids = list_oids()
     spaceids = list_spaces()
 
     # 1. Query all points with a specific OID
     r = query_oid(oids[2])
-    a_point = r[0]
 
     # 2. Query all points at a specific position in space
-    # r = query_geometry([a_point["geometry.coordinates_%d___pdouble" % x]
-    #                    for x in range(0, 3)])
+    if x == 0:
+        a_point = r[0]
+        r = query_geometry([a_point["geometry.coordinates_%d___pdouble" % x]
+                            for x in range(0, 3)])
+    elif x == 1:
+        # 3. Query all the points in a specific reference space
+        r = query_space(spaceids[0])
 
-    # 3. Query all the points in a specific reference space
-    # r = query_space(spaceids[0])
+    elif x == 2:
+        # 4. Query all points contained in a specific volume, defined by volume.
+        # FIXME: Double check boundary behavior for points on the surface of the
+        #        volume, are they returned or not? Same question if they are on
+        #        an edge of the volume?
+        r = query_mbb([[0., 0., 0.], [0.1, 0.1, 0.1]])
 
-    # 4. Query all points contained in a specific volume, defined by volume.
-    # FIXME: Double check boundary behavior for points on the surface of the
-    #        volume, are they returned or not? Same question if they are on
-    #        an edge of the volume?
-    # r = query_mbb([[0., 0., 0.], [0.1, 0.1, 0.1]])
-
-    # 5. Query all points contained in a specific volume, defined by label,
-    #    a.k.a OID.
-    r = query_labels(oids[2:5])
-    # OK*************
+    elif x == 2:
+        # 5. Query all points contained in a specific volume, defined by label,
+        #    a.k.a OID.
+        r = query_labels(oids[2:5])
     print(r)
 
 
@@ -245,7 +191,7 @@ def main(argv):
     solr = Solr(url)
 
     run_queries(repetitions)
-    # test_queries()
+    # test_query()
 
 
 if __name__ == "__main__":

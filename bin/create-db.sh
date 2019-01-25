@@ -1,6 +1,7 @@
 #!/bin/sh
 
-. ./settings.sh
+: ${SPATIAL_SEARCH_HOME:="${PWD}"}
+. ${SPATIAL_SEARCH_HOME}/settings.sh
 
 if [ -z $1 ]
 then
@@ -24,4 +25,4 @@ then
 fi
 
 # 2. Register the Spatial types and fields
-./py-solr/register.py -u ${KG_SPATIAL_SEARCH_URL} -c ${core} ${data} $@
+${PYTHON_ROOT}/register.py -u ${KG_SPATIAL_SEARCH_URL} -c ${core} ${data} $@
