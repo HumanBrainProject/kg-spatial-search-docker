@@ -3,28 +3,22 @@
 import getopt
 import sys
 
+from multiprocessing import Pool
+
 from util.solr import Solr
 import util.benchmarks as bench
 
 
 def usage(progname, retval=0):
-    print("%s -c <core> -r <num>" % progname)
+    print("%s -c <core> -r <num> -t <num>" % progname)
     print("\t-c <core>          \tCore to use for the queries")
     print("\t-u <url>           \turl to the Solr server")
     print("\t-r <num>           \tnumber of repetition, per query")
+    print("\t-t <num>           \tnumber of threads, per query")
+    print("")
+    print("NOTE: the total number of run per query is defined by -r <R>, which means with\n"
+          "      -t <T> threads, each thread will execute R/T times each query.")
     sys.exit(retval)
-
-
-def repeat(count, query, *args):
-    qr = []
-
-    # Warm up query, not timed
-    query(*args)
-
-    for i in range(0, count):
-        qr.append(bench.timed(lambda: query(*args)))
-
-    return qr
 
 
 #############################################################################
@@ -34,7 +28,28 @@ solr = None
 url = ''
 
 
-def run_queries(repetitions):
+def wrapper(arg):
+    f, a = arg
+    r, t = bench.timed(lambda: f(*a))
+#    print("R {} T {}".format(r, t))
+    return t
+
+
+def repeat(count, threads, query, *args):
+    pool = Pool(processes=threads)
+    cookies = [(query, args) for _ in range(0, count, 1)]
+
+    query(*args)
+
+    ar = pool.map_async(wrapper, cookies)
+
+    pool.close()
+    pool.join()
+
+    return [([""], t) for t in ar.get()]
+
+
+def run_queries(threads, repetitions):
     # Generate Timing statistics
     oids = bench.list_oids()
     spaceids = bench.list_spaces()
@@ -46,25 +61,31 @@ def run_queries(repetitions):
           (repetitions, core))
 
     # 1. Query all points with a specific OID
-    qs.append(("Q1", repeat(repetitions, bench.query_oid, oids[0])))
+    qs.append(("Q1", repeat(repetitions, threads,
+                            bench.query_oid, oids[0])))
 
     # 2. Query all points at a specific position in space
     position = [a_point["geometry.coordinates_%d___pdouble" % x]
                 for x in range(0, 3)]
-    qs.append(("Q2", repeat(repetitions, bench.query_geometry, position)))
+    qs.append(("Q2", repeat(repetitions, threads,
+                            bench.query_geometry, position)))
 
     # 3. Query all the points in a specific reference space
-    qs.append(("Q3", repeat(repetitions, bench.query_space, spaceids[0])))
+    qs.append(("Q3", repeat(repetitions, threads,
+                            bench.query_space, spaceids[0])))
 
     # 4. Query all points contained in a specific volume, defined by volume.
-    qs.append(("Q4", repeat(repetitions, bench.query_mbb,
-                                  [[0., 0., 0.], [0.1, 0.1, 0.1]])))
+    qs.append(("Q4", repeat(repetitions, threads,
+                            bench.query_mbb,
+                            [[0., 0., 0.], [0.1, 0.1, 0.1]])))
     # 5. Query all points contained in a specific volume, defined by label,
     #    a.k.a OID.
     if len(oids) < 5:
-        qs.append(("Q5", repeat(repetitions, bench.query_labels, oids[:])))
+        qs.append(("Q5", repeat(repetitions, threads,
+                                bench.query_labels, oids[:])))
     else:
-        qs.append(("Q5", repeat(repetitions, bench.query_labels, oids[2:5])))
+        qs.append(("Q5", repeat(repetitions, threads,
+                                bench.query_labels, oids[2:5])))
 
     #########################################################################
     # Output the selected statistics
@@ -75,48 +96,25 @@ def run_queries(repetitions):
                ",".join(["%.16f" % v for v in [t for r, t in q[1]]])))
 
 
-def test_query(x=0):
+def test_query(threads, repetitions):
     # TESTS TO CHECK QUERY RESULTS
+    print("START")
     oids = bench.list_oids()
-    spaceids = bench.list_spaces()
+    # spaceids = bench.list_spaces()
 
-    # 1. Query all points with a specific OID
-    r = bench.query_oid(oids[0])
-
-    # 2. Query all points at a specific position in space
-    if x == 0:
-        a_point = r[0]
-        r = bench.query_geometry(
-                [a_point["geometry.coordinates_%d___pdouble" % x]
-                 for x in range(0, 3)])
-    elif x == 1:
-        # 3. Query all the points in a specific reference space
-        r = bench.query_space(spaceids[0])
-
-    elif x == 2:
-        # 4. Query all points contained in a specific volume, defined by volume.
-        # FIXME: Double check boundary behavior for points on the surface of the
-        #        volume, are they returned or not? Same question if they are on
-        #        an edge of the volume?
-        r = bench.query_mbb([[0., 0., 0.], [0.1, 0.1, 0.1]])
-
-    elif x == 3:
-        # 5. Query all points contained in a specific volume, defined by label,
-        #    a.k.a OID.
-        if len(oids) < 5:
-            r = bench.query_labels(oids[:])
-        else:
-            r = bench.query_labels(oids[2:5])
-    print(r)
+    qr = repeat(repetitions, threads, bench.query_oid, oids[0])
+    print(qr)
+    print("END")
 
 
 def main(argv):
     global core, url, solr
     progname = argv[0]
     repetitions = 0
+    threads = 0
 
     try:
-        opts, args = getopt.getopt(argv[1:], 'c:r:u:')
+        opts, args = getopt.getopt(argv[1:], 'c:r:t:u:')
     except getopt.GetoptError:
         usage(progname, 1)
 
@@ -125,6 +123,8 @@ def main(argv):
             core = arg
         elif opt == '-r':
             repetitions = int(arg)
+        elif opt == '-t':
+            threads = int(arg)
         elif opt == '-u':
             url = arg
         elif opt == '-h':
@@ -135,6 +135,7 @@ def main(argv):
     if len(opts) == 0:
         usage(progname, 1)
 
+    assert (threads > 0)
     assert (repetitions > 0)
     assert (core != '')
     assert (url != '')
@@ -142,8 +143,8 @@ def main(argv):
     solr = Solr(url)
     bench.init(solr, core)
 
-    run_queries(repetitions)
-    # test_query(3)
+    run_queries(threads, repetitions)
+    # test_query(threads, repetitions)
 
 
 if __name__ == "__main__":

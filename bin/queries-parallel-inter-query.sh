@@ -11,7 +11,7 @@ iterate() {
 	do
 		for d in 1 2 5
 		do
-			time ${PYTHON_ROOT}/queries-serial-bench.py \
+			time ${PYTHON_ROOT}/queries-parallel-inter-query-bench.py \
 				-c $d${f}k -r 20 -u \
 				${KG_SPATIAL_SEARCH_URL} | tee ${folder}/$d${f}k.csv
 			echo ------------------------------------------------------------------------

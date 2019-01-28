@@ -27,6 +27,8 @@ While we do try to keep things portable, keep in mind this project has been deve
    │   ├── generate.sh
    │   ├── load.sh
    │   ├── plot-serial.sh
+   │   ├── queries-parallel-inter-query.sh
+   │   ├── queries-parallel-per-query.sh
    │   ├── queries-serial.sh
    │   └── reset.sh
    ├── build
