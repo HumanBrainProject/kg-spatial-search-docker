@@ -17,7 +17,7 @@ def print_point(oid, reference_space, point, end):
 
     (x0, x1, x2) = point
     point_str = '{{"type":"Feature","geometry":'
-    point_str += '{{"type":"Point","reference_space":"{}",'
+    point_str += '{{"type":"Point","referenceSpace":"{}",'
     point_str += '"coordinates":["{},{},{}"]}},'
     point_str += '"properties":{{"id":"{}"}}}}'
     point_str += end
