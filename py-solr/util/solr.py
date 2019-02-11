@@ -47,6 +47,7 @@ class Solr:
         assert (len(coordinate) < 5)
         if coordinate is None:
             print('Coordinate: %s' % coordinate)
+
         # FIXME: make sure to have the right precision, otherwise points will
         #        not match, even when they should.
         return ', '.join(['%.16f' % c for c in coordinate])
@@ -542,9 +543,6 @@ class Solr:
         # same (most inner) json tag:
         params = '?split=/'
 
-        # FIXME: Should we try to actively hide the automatic, typed (
-        # _str, ___pdouble, etc) fields?
-
         post_headers = {
             'content-type': 'application/json',
             'charset': 'utf-8'
@@ -608,9 +606,7 @@ class Solr:
 
         # FIXME: Evaluate what is better, the whole field, or to use the
         # scalar values of each geometry?
-
-        # space_str + ' AND geometry.geometry=("%s")' %
-        #           self.point_to_str(point)
+        # ' AND geometry.geometry=("%s")' % self.point_to_str(point)
 
         # FIXME: make sure to have the right precision, otherwise points will
         #        not match, even when they should.
@@ -764,7 +760,7 @@ class Solr:
 
         if reference_space is not None:
             # We want all the points stored in that reference coordinate system
-            fq.append('geometry.referenceSpace_str:%s' % reference_space)
+            fq.append('geometry.referenceSpace:%s' % reference_space)
 
         if geometry is not None:
             # We want everything found at that specific point in space

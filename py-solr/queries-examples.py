@@ -90,7 +90,7 @@ def query_geometry(geometry):
     # create_colors.
     num_points = solr.query_cardinality(core, geometry=geometry)
     points = solr.query(core, geometry=geometry,
-                        fl=spatial_fields+',properties.id_str',
+                        fl=spatial_fields+',properties.id',
                         rows=num_points)["response"]["docs"]
     box = solr.spatial_mbb(core, query='geometry.coordinates:("%s")' %
                                        solr.point_to_str(geometry))
@@ -111,7 +111,7 @@ def query_geometry(geometry):
     # Plot each point individually, be careful w.r.t the number of points,
     # as this can be very slow if there are a lot of points
     for p in points:
-        f.add_points([p], label=p['properties.id_str'][0], color=f.next_color())
+        f.add_points([p], label=p['properties.id'][0], color=f.next_color())
 
     f.show()
 
@@ -151,7 +151,7 @@ def query_space(reference_space, bucket_size, page_size):
     #########################################################################
     # Find out all the points linked to the reference space
     num_points = solr.query_cardinality(core, reference_space=reference_space)
-    box = solr.spatial_mbb(core, query='geometry.referenceSpace_str:%s' %
+    box = solr.spatial_mbb(core, query='geometry.referenceSpace:%s' %
                                        reference_space)
 
     #########################################################################

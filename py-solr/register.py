@@ -62,9 +62,17 @@ def main(argv):
         # 3. Add geometry fields
         solr.field_add(core, 'geometry.type', 'string', stored='true',
                        indexed='true', doc_values='true')
+        solr.field_add(core, 'geometry.referenceSpace', 'string', stored='true',
+                       indexed='true', doc_values='true')
         solr.field_add(core, 'geometry.coordinates', 'Point3D',
                        stored='true', indexed="true",
                        multi='true')
+
+        # 4. Add attributes
+        solr.field_add(core, 'type', 'string', stored='true',
+                       indexed='true', doc_values='true')
+        solr.field_add(core, 'properties.id', 'string', stored='true',
+                       indexed='true', doc_values='true')
 
     if not [True for c in solr.cores() if c == core]:
         print('Core "%s" does not exist, skipping...' % core)
