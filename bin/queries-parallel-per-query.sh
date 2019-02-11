@@ -12,7 +12,7 @@ iterate() {
 		for d in 1 2 5
 		do
 			time ${PYTHON_ROOT}/queries-parallel-per-query-bench.py \
-			    -c $d${f}k -r 20 -t 10 -u \
+				-c $d${f}k -r 20 -t 10 -u \
 				${KG_SPATIAL_SEARCH_URL} | tee ${folder}/$d${f}k.csv
 			echo ------------------------------------------------------------------------
 		done
