@@ -290,9 +290,17 @@ def main(argv):
 
     # query_oid('2900d3a9-e7cb-4a14-9248-98717f654fc7')
 
+    # Figure out the OIDs available:
+    # oids = solr.list_field(core, 'properties.id')
+    # Let's hope there is more than point at that location:
+    # a_point = solr.query(core, oids[0], fl=spatial_fields)["response"]["docs"][0]
+    # position = [a_point["geometry.coordinates_%d___pdouble" % x]
+    #            for x in range(0, 3)]
+    # query_geometry(position)
+
     # query_geometry([24.27, 9.84, 17.65])
 
-    #query_mbb([[380, 100, 50], [400, 300, 200]])
+    # query_mbb([[380, 100, 50], [400, 300, 200]])
 
     # query_space('MNI', 1, 20)
     # query_space('WHS_SD_rat_v1.01', 100, 20000)
