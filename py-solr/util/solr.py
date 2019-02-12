@@ -715,7 +715,7 @@ class Solr:
               oid=None, labels=None,
               geometry=None, mbb=None, reference_space=None,
               fl=None, q='*:*', params=None,
-              rows=10, start=0,
+              rows=10, start=0, indent='on',
               print_timing=False, verbose=False):
         """Wrapper for queries inside the spatial index.
 
@@ -806,7 +806,7 @@ class Solr:
         if verbose:
             print('Solr query:')
         r = self._query(core, q, fq, fl, params=p, rows=rows,
-                        start=start,
+                        start=start, indent=indent,
                         print_timing=print_timing, verbose=verbose)
 
         return r.json()
